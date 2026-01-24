@@ -1,0 +1,16 @@
+# 忽略虚拟环境文件夹
+venv/
+
+# 忽略 Python 缓存文件
+__pycache__/
+*.pyc
+
+# 忽略 IDE 配置文件（根据使用的 IDE 添加）
+.vscode/
+.idea/
+
+# 忽略 Jupyter Notebook checkpoints
+.ipynb_checkpoints
+
+# 忽略日志文件
+*.log
