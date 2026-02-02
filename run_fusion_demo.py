@@ -1,5 +1,5 @@
 # -*- coding: utf-8 -*-
-"""融合模块运行脚本（原型阶段）。"""
+"""融合模块运行脚本（原型阶段）"""
 from fusion.decision import FusionConfig, run_fusion_pipeline
 
 
