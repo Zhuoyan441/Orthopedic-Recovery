@@ -1,0 +1,1 @@
+from icf_data_simulator import load_icf_data; df = load_icf_data("simulated_icf_clinical_data.csv")

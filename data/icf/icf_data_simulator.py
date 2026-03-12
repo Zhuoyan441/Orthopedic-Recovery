@@ -111,7 +111,7 @@ def generate_dataset(n_patients=50):
     df = df[["patient_id", "time_step", "rehab_phase", "icf_total", "rom", "vas"]]
     
     # 保存到当前目录
-    save_path = "simulated_icf_clinical_data.csv"
+    save_path = "demo_output/icf_time_series.csv"
     df.to_csv(save_path, index=False, encoding='utf-8-sig')
     
     print(f"\n✅ 数据生成成功！保存至: {save_path}")
@@ -188,7 +188,7 @@ if __name__ == "__main__":
     df_generated = generate_dataset(n_patients=50)
     
     # 测试加载接口
-    df_loaded = load_icf_data("simulated_icf_clinical_data.csv")
+    df_loaded = load_icf_data("demo_output/icf_time_series.csv")
     
     # 验证数据一致性
     assert len(df_generated) == len(df_loaded)
