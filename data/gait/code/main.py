@@ -1,193 +1,106 @@
 # =========================================
-# KIMORE 步态异常检测（最终高准确率版🔥）
+# Gait Module - 最终高准确率版🔥
 # =========================================
 
 import os
 import numpy as np
 import pandas as pd
-import torch
-import torch.nn as nn
+import matplotlib.pyplot as plt
+
 from sklearn.model_selection import train_test_split
-from sklearn.metrics import accuracy_score, confusion_matrix
-from sklearn.preprocessing import StandardScaler
+from sklearn.ensemble import RandomForestClassifier
+from sklearn.metrics import accuracy_score, confusion_matrix, classification_report
 
 # =========================================
 # 1. 路径
 # =========================================
 BASE_PATH = r"D:\kimore\KIMORE_DATASET"
+output_dir = "data/gait/demo_output"
+os.makedirs(output_dir, exist_ok=True)
 
 # =========================================
-# 2. 读取数据
+# 2. 50个patient
 # =========================================
-X_all = []
-y_all = []
+NUM_PATIENTS = 50
+patient_ids = [f"P{str(i+1).zfill(4)}" for i in range(NUM_PATIENTS)]
 
-for ex_folder in os.listdir(BASE_PATH):
-    ex_path = os.path.join(BASE_PATH, ex_folder)
+# =========================================
+# 3. 读取数据
+# =========================================
+X_all, y_all = [], []
 
-    if not os.path.isdir(ex_path):
+for ex in os.listdir(BASE_PATH):
+    path = os.path.join(BASE_PATH, ex)
+    if not os.path.isdir(path):
         continue
 
-    print(f"\n===== 处理 {ex_folder} =====")
+    X = pd.read_csv(os.path.join(path, "Train_X.csv"), header=None).values
+    y = pd.read_csv(os.path.join(path, "Train_Y.csv"), header=None).values.flatten()
 
-    X_file = os.path.join(ex_path, "Train_X.csv")
-    Y_file = os.path.join(ex_path, "Train_Y.csv")
-
-    if not os.path.exists(X_file):
-        print("❌ 缺少:", X_file)
-        continue
-
-    X = pd.read_csv(X_file, header=None).values
-    y = pd.read_csv(Y_file, header=None).values.flatten()
-
-    print("读取成功:", X.shape, y.shape)
+    print(f"{ex}:", X.shape, y.shape)
 
     X_all.append(X)
     y_all.append(y)
 
 # =========================================
-# 3. 帧 → 动作样本（增强特征🔥）
+# 4. 构建特征（高分关键🔥）
 # =========================================
-X_seq = []
-y_seq = []
+X_cls, y_cls = [], []
 
 for i in range(len(X_all)):
-    X = X_all[i]
-    y = y_all[i]
+    Xr = X_all[i]
+    yr = y_all[i]
 
-    num_samples = len(y)
-    frames_per_sample = X.shape[0] // num_samples
+    num = len(yr)
+    frames = Xr.shape[0] // num
 
-    print(f"每个样本帧数: {frames_per_sample}")
+    for j in range(num):
+        sample = Xr[j*frames:(j+1)*frames]
 
-    for j in range(num_samples):
-        start = j * frames_per_sample
-        end = (j + 1) * frames_per_sample
+        mean = np.mean(sample, axis=0)
+        std = np.std(sample, axis=0)
+        maxv = np.max(sample, axis=0)
+        minv = np.min(sample, axis=0)
+        velocity = np.mean(np.diff(sample, axis=0), axis=0)
+        energy = np.sum(sample**2, axis=0)
 
-        sample = X[start:end]
+        feat = np.concatenate([mean, std, maxv, minv, velocity, energy])
 
-        # ===== 高级特征（核心🔥）=====
-        mean_feat = np.mean(sample, axis=0)
-        std_feat = np.std(sample, axis=0)
-        max_feat = np.max(sample, axis=0)
-        min_feat = np.min(sample, axis=0)
+        X_cls.append(feat)
+        y_cls.append(int(yr[j]))
 
-        # 动态变化（关键）
-        diff_feat = np.mean(np.diff(sample, axis=0), axis=0)
-
-        feature = np.concatenate([
-            mean_feat,
-            std_feat,
-            max_feat,
-            min_feat,
-            diff_feat
-        ])  # 500维
-
-        X_seq.append(feature)
-        y_seq.append(int(y[j]))
+X_cls = np.array(X_cls)
+y_cls = np.array(y_cls)
 
 # =========================================
-# 4. 转 numpy
+# 5. 二分类标签
 # =========================================
-X = np.array(X_seq)
-y = np.array(y_seq)
-
-print("\n原始标签范围:", np.min(y), np.max(y))
+threshold = np.percentile(y_cls, 60)
+y_cls = np.array([0 if v >= threshold else 1 for v in y_cls])
 
 # =========================================
-# 5. 自适应阈值（二分类🔥）
-# =========================================
-threshold = np.percentile(y, 60)
-
-y = np.array([0 if label >= threshold else 1 for label in y])
-
-print("转换后二分类分布:", np.bincount(y))
-
-# =========================================
-# 6. 标准化
-# =========================================
-scaler = StandardScaler()
-X = scaler.fit_transform(X)
-
-# =========================================
-# 7. 划分数据
+# 6. 划分数据
 # =========================================
 X_train, X_test, y_train, y_test = train_test_split(
-    X, y, test_size=0.2, random_state=42, stratify=y
+    X_cls, y_cls, test_size=0.2, random_state=42, stratify=y_cls
 )
 
 # =========================================
-# 8. 转 tensor
+# 7. 模型（最优🔥）
 # =========================================
-X_train = torch.tensor(X_train, dtype=torch.float32)
-X_test = torch.tensor(X_test, dtype=torch.float32)
+model = RandomForestClassifier(
+    n_estimators=300,
+    max_depth=12,
+    min_samples_split=5,
+    random_state=42
+)
 
-y_train = torch.tensor(y_train, dtype=torch.long)
-y_test = torch.tensor(y_test, dtype=torch.long)
+model.fit(X_train, y_train)
 
-# =========================================
-# 9. 类别不平衡处理🔥
-# =========================================
-class_counts = np.bincount(y_train.numpy())
-weights = 1.0 / class_counts
-weights = torch.tensor(weights, dtype=torch.float32)
+y_pred = model.predict(X_test)
 
 # =========================================
-# 10. 模型（强化版🔥）
-# =========================================
-class GaitModel(nn.Module):
-    def __init__(self, input_dim):
-        super().__init__()
-        self.net = nn.Sequential(
-            nn.Linear(input_dim, 256),
-            nn.ReLU(),
-            nn.BatchNorm1d(256),
-            nn.Dropout(0.3),
-
-            nn.Linear(256, 128),
-            nn.ReLU(),
-            nn.BatchNorm1d(128),
-            nn.Dropout(0.2),
-
-            nn.Linear(128, 64),
-            nn.ReLU(),
-
-            nn.Linear(64, 2)
-        )
-
-    def forward(self, x):
-        return self.net(x)
-
-model = GaitModel(X.shape[1])
-
-# =========================================
-# 11. 训练
-# =========================================
-criterion = nn.CrossEntropyLoss(weight=weights)
-optimizer = torch.optim.Adam(model.parameters(), lr=0.001)
-
-for epoch in range(40):
-    model.train()
-
-    outputs = model(X_train)
-    loss = criterion(outputs, y_train)
-
-    optimizer.zero_grad()
-    loss.backward()
-    optimizer.step()
-
-    print(f"Epoch {epoch}, Loss: {loss.item():.4f}")
-
-# =========================================
-# 12. 测试
-# =========================================
-model.eval()
-with torch.no_grad():
-    preds = model(X_test)
-    y_pred = torch.argmax(preds, dim=1)
-
-# =========================================
-# 13. 评估
+# 8. 评估
 # =========================================
 acc = accuracy_score(y_test, y_pred)
 cm = confusion_matrix(y_test, y_pred)
@@ -197,97 +110,84 @@ print("最终结果")
 print("========================")
 print("Accuracy:", acc)
 print("Confusion Matrix:\n", cm)
-# =========================================
-# 14. 生成 gait_features.csv（给Streamlit用🔥）
-# =========================================
-output_dir = "data/gait/demo_output"
-os.makedirs(output_dir, exist_ok=True)
+print(classification_report(y_test, y_pred))
 
-gait_rows = []
-patient_id = 0
+# =========================================
+# 9. 生成 CSV（含 sample_id）
+# =========================================
+rows = []
+sample_index = 0
 
 for i in range(len(X_all)):
-    X_raw = X_all[i]
-    y_raw = y_all[i]
+    Xr = X_all[i]
+    yr = y_all[i]
 
-    num_samples = len(y_raw)
-    frames = X_raw.shape[0] // num_samples
+    num = len(yr)
+    frames = Xr.shape[0] // num
 
-    for j in range(num_samples):
-        sample = X_raw[j*frames:(j+1)*frames]
+    for j in range(num):
+        sample = Xr[j*frames:(j+1)*frames]
 
-        time = np.arange(frames)
+        pid = patient_ids[sample_index % NUM_PATIENTS]
 
-        # 简化关节角（用于展示）
-        knee_angle = np.mean(sample[:, :10], axis=1)
-        ankle_angle = np.mean(sample[:, 10:20], axis=1)
+        knee = np.mean(sample[:, :10], axis=1)
+        ankle = np.mean(sample[:, 10:20], axis=1)
 
-        gait_cycle = np.sin(np.linspace(0, 2*np.pi, frames))
-
-        # anomaly_prob（用于展示，不参与训练）
-        anomaly_prob = 1 - (y_raw[j] / max(y_raw))
+        cycle = np.sin(np.linspace(0, 2*np.pi, frames))
+        prob = 1 - (yr[j] / max(yr))
 
         for t in range(frames):
-            gait_rows.append([
-                f"p{patient_id}",
+            rows.append([
+                pid,
+                sample_index,
                 t,
-                knee_angle[t],
-                ankle_angle[t],
-                gait_cycle[t],
-                anomaly_prob
+                knee[t],
+                ankle[t],
+                cycle[t],
+                prob
             ])
 
-        patient_id += 1
+        sample_index += 1
 
-df = pd.DataFrame(gait_rows, columns=[
-    "patient_id",
-    "time",
-    "knee_angle",
-    "ankle_angle",
-    "gait_cycle",
-    "anomaly_prob"
+df = pd.DataFrame(rows, columns=[
+    "patient_id","sample_id","time",
+    "knee_angle","ankle_angle","gait_cycle","anomaly_prob"
 ])
 
-csv_path = os.path.join(output_dir, "gait_features.csv")
+# =========================================
+# 🔥 排序（按 patient_id 升序）
+# =========================================
+df = df.sort_values(by=["patient_id", "sample_id", "time"])
+
+csv_path = f"{output_dir}/gait_features.csv"
 df.to_csv(csv_path, index=False)
 
-print("✅ gait_features.csv 已生成:", csv_path)
+print("✅ gait_features.csv 已生成（已排序）")
 
 # =========================================
-# 15. 生成示例步态图
+# 10. 单样本图（不乱🔥）
 # =========================================
-import matplotlib.pyplot as plt
+pid = df["patient_id"].iloc[0]
+sid = df[df["patient_id"] == pid]["sample_id"].iloc[0]
 
-example_patient = df["patient_id"].iloc[0]
-example_df = df[df["patient_id"] == example_patient]
+d = df[(df["patient_id"] == pid) & (df["sample_id"] == sid)]
 
-plt.figure()
-plt.plot(example_df["time"], example_df["knee_angle"], label="knee")
-plt.plot(example_df["time"], example_df["ankle_angle"], label="ankle")
+plt.figure(figsize=(8,4))
+plt.plot(d["time"], d["knee_angle"], label="knee")
+plt.plot(d["time"], d["ankle_angle"], label="ankle")
 plt.legend()
-plt.title("Gait Feature Example")
-
-img1_path = os.path.join(output_dir, "gait_feature_example.png")
-plt.savefig(img1_path, dpi=300)
+plt.title(f"Gait Example ({pid})")
+plt.savefig(f"{output_dir}/gait_feature_example.png", dpi=300)
 plt.close()
 
-print("✅ gait_feature_example.png 已生成:", img1_path)
-
 # =========================================
-# 16. 异常概率分布图
+# 11. 分布图
 # =========================================
 plt.figure()
 plt.hist(df["anomaly_prob"], bins=30)
-plt.title("Anomaly Probability Distribution")
-
-img2_path = os.path.join(output_dir, "gait_anomaly_hist.png")
-plt.savefig(img2_path, dpi=300)
+plt.title("Anomaly Distribution")
+plt.savefig(f"{output_dir}/gait_anomaly_hist.png", dpi=300)
 plt.close()
 
-print("✅ gait_anomaly_hist.png 已生成:", img2_path)
-
-# =========================================
-# 17. 输出目录提示
-# =========================================
-print("\n📂 所有输出文件位置:")
-print(os.path.abspath(output_dir))
+print("✅ 图像已生成")
+print("📂 输出路径:", os.path.abspath(output_dir))
