@@ -1,12 +1,17 @@
 {
   "patient_id": "P0001",
-  "risk_score": 0.376,
+  "risk_score": 0.421,
   "risk_level": "Low",
-  "dynamic_threshold_used": 0.53,
+  "dynamic_threshold_used": 0.55,
   "details": {
     "icf_raw": 100.0,
     "gait_raw": 0.224,
-    "sensor_raw": 0.5
+    "sensor_raw": 0.8
   },
-  "explain_one_line": "经高级多模态模型融合(含动态阈值分配)，综合风险为 0.38，超过动态阈值 0.53，评估等级为 Low。"
+  "attention_weights": {
+    "icf": 0.677,
+    "gait": 0.159,
+    "sensor": 0.163
+  },
+  "explain_one_line": "基于信息熵与风险感知注意力机制融合，系统将主要注意力分配给特定模态，最终综合风险评分为 0.42 (阈值 0.55)，等级为 Low。"
 }
