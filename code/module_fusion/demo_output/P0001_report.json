@@ -1,0 +1,12 @@
+{
+  "patient_id": "P0001",
+  "risk_score": 0.376,
+  "risk_level": "Low",
+  "dynamic_threshold_used": 0.53,
+  "details": {
+    "icf_raw": 100.0,
+    "gait_raw": 0.224,
+    "sensor_raw": 0.5
+  },
+  "explain_one_line": "经高级多模态模型融合(含动态阈值分配)，综合风险为 0.38，超过动态阈值 0.53，评估等级为 Low。"
+}
