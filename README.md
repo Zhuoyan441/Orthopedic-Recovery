@@ -4,17 +4,6 @@
 
 本项目通过多模态数据（ICF 疗效评估、步态特征、IMU 动作识别）融合，输出患者康复风险评分，并提供可解释性分析。
 
-## 已加入 `Fusion` 模块（初版）
-- 入口脚本：`run_fusion_demo.py`
-- 输入示例：`data/icf/`, `data/gait/`, `data/sensor/`
-- 输出位置：`data/fusion/example_fusion_output.csv`
-
-运行示例：
-```powershell
-python run_fusion_demo.py
-```
----
-
 ## 快速开始（Quick Start）
 
 ### 1. 环境准备
