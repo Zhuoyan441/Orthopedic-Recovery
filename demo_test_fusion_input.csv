@@ -1,0 +1,3 @@
+patient_id,icf_total,gait_anomaly_prob,imu_quality_mean
+P0001,72,0.8,0.92
+P0002,45,0.2,0.98
