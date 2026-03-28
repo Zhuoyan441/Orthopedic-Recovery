@@ -1,0 +1,23 @@
+{
+  "patient_id": "P0001",
+  "risk_score": 0.6071786507114856,
+  "risk_level": "Medium",
+  "top_contributors": [
+    {
+      "feature": "icf_total",
+      "value": 100.0,
+      "contribution": 0.5
+    },
+    {
+      "feature": "gait_anomaly_prob",
+      "value": 0.223928835704952,
+      "contribution": 0.0671786507114856
+    },
+    {
+      "feature": "imu_quality_mean",
+      "value": 0.8,
+      "contribution": 0.039999999999999994
+    }
+  ],
+  "explain_one_line": "主要由 icf_total 贡献最高，综合风险为 0.61，等级为 Medium。"
+}

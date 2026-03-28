@@ -16,24 +16,26 @@ def load_inputs(input_path: str) -> pd.DataFrame:
 
 
 def pick_patient_row(df: pd.DataFrame, patient_id: str = None) -> pd.Series:
-    """
-    选出一个 patient 的一行数据。
-    如果没传 patient_id，就默认取第一行。
-    """
     if df.empty:
         raise ValueError("输入表为空，无法做XAI。")
-
-    if patient_id is None:
-        return df.iloc[0]
 
     if "patient_id" not in df.columns:
         raise ValueError("输入表没有 patient_id 列。")
 
-    sub = df[df["patient_id"] == patient_id]
+    if patient_id is None:
+        raise ValueError("请明确传入 patient_id，不要默认取第一行。")
+
+    sub = df[df["patient_id"].astype(str) == str(patient_id)]
     if sub.empty:
         raise ValueError(f"找不到 patient_id={patient_id}")
 
-    return sub.iloc[0]
+    # 如果有日期列，优先取最新一条
+    if "assessment_date" in sub.columns:
+        sub = sub.copy()
+        sub["assessment_date"] = pd.to_datetime(sub["assessment_date"], errors="coerce")
+        sub = sub.sort_values("assessment_date")
+
+    return sub.iloc[-1]
 
 
 def explain_patient_row(row: pd.Series) -> dict:
