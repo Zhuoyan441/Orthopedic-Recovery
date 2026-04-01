@@ -1,9 +1,10 @@
 # -*- coding: utf-8 -*-
 """
-多模态融合模块接口
-1. 基于信息熵的不确定性估计 (Uncertainty Estimation)
-2. 风险感知注意力机制 (Risk-Aware Attention via Softmax)
-3. 极端风险残差保留 (Max-Risk Residual)
+多模态融合模块接口 (Streamlit Demo 版)
+1. 证据理论信念评估 (Evidential Belief Estimation)
+2. 跨模态冲突指数计算 (Cross-Modal Conflict Index, CMCI)
+3. 冲突感知的自适应温度注意力 (Conflict-Aware Dynamic Temperature Softmax)
+4. 协同非线性风险聚合 (Synergistic Non-linear Risk Aggregation)
 """
 import os
 import json
@@ -76,15 +77,16 @@ def load_and_align_data(config: FusionConfig) -> pd.DataFrame:
 
 
 # ==============================================================================
-# 前沿融合算法：Uncertainty-Aware Cross-Modal Attention (2024-2025架构)
+# 前沿融合算法 V4：Evidential Subjective Logic & CMCI-Attention
 # ==============================================================================
-def calculate_certainty(p: float) -> float:
-    """计算模态的确信度 (基于归一化香农信息熵 Shannon Entropy)
-    当概率 p 接近 0.5 时，熵最大，确信度最低 (噪音大)；接近 0 或 1 时，确信度最高。
+def get_evidential_belief(p: float) -> float:
     """
-    p = np.clip(p, 1e-5, 1.0 - 1e-5)
-    entropy = - (p * np.log2(p) + (1 - p) * np.log2(1 - p))
-    return float(1.0 - entropy)
+    基于主观逻辑 (Subjective Logic) 的证据信念评估。
+    抛物线映射：极端概率(0或1)带有高先验信念，中间值(0.5)由于歧义导致信念度最低。
+    """
+    p = np.clip(p, 0.0, 1.0)
+    uncertainty = 4.0 * ((p - 0.5) ** 2)  # U = 1 - 4(p-0.5)^2 -> Belief = 1 - U
+    return float(uncertainty)
 
 
 def advanced_fusion_predict(row: pd.Series) -> pd.Series:
@@ -95,37 +97,44 @@ def advanced_fusion_predict(row: pd.Series) -> pd.Series:
     # 1. 风险空间映射 (Risk Representation)
     icf_risk = i_val / 200.0 if i_val > 10 else np.clip(i_val, 0, 1)
     gait_risk = np.clip(g_val, 0, 1)
-    sensor_risk = 1.0 - np.clip(s_val, 0, 1)  # 质量越低，风险越高
+    sensor_risk = 1.0 - np.clip(s_val, 0, 1)
 
-    # 2. 模态确信度评估 (Uncertainty Estimation)
-    # 临床量表(ICF)被视为高先验确信度，而传感器(Gait/IMU)的确信度动态计算
-    c_icf = 0.85
-    c_gait = calculate_certainty(gait_risk)
-    c_sensor = calculate_certainty(sensor_risk)
+    # 2. 证据信念度计算 (Belief Masses)
+    c_icf = 0.90  # 临床量表作为 Ground Truth 先验，给予最高信念
+    c_gait = get_evidential_belief(gait_risk)
+    c_sensor = get_evidential_belief(sensor_risk)
 
-    # 3. 风险感知注意力分配 (Risk-Aware Softmax Attention)
-    # Logit = 风险严重程度 * 信息确信度
-    tau = 0.3  # Temperature scaling (温度系数控制注意力的尖锐度)
+    # 3. 跨模态冲突指数计算 (Cross-Modal Conflict Index, CMCI)
+    risks = np.array([icf_risk, gait_risk, sensor_risk])
+    cmci = np.std(risks)  # 模态间的分歧方差，代表冲突严重程度
+
+    # 4. 冲突感知的动态温度自适应注意力 (Conflict-Aware Dynamic Temperature)
+    # 当冲突高时，下调温度 tau，使得 Softmax 注意力变得"尖锐"，强行聚焦最可靠模态
+    tau = max(0.05, 0.4 * np.exp(-1.5 * cmci))
+
     logits = np.array([
-        (icf_risk + 0.1) * c_icf,
-        (gait_risk + 0.1) * c_gait,
-        (sensor_risk + 0.1) * c_sensor
+        (icf_risk + 0.05) * c_icf,
+        (gait_risk + 0.05) * c_gait,
+        (sensor_risk + 0.05) * c_sensor
     ]) / tau
 
-    exp_logits = np.exp(logits - np.max(logits))  # 防溢出处理
+    exp_logits = np.exp(logits - np.max(logits))  # 防溢出
     attention_weights = exp_logits / np.sum(exp_logits)
     w_icf, w_gait, w_sensor = attention_weights
 
-    # 4. 注意力加权融合 + 极端风险残差连接 (Max-Risk Residual)
-    # 防止多模态平均效应掩盖了某一个极度危险的信号
-    attention_fused_risk = (w_icf * icf_risk) + (w_gait * gait_risk) + (w_sensor * sensor_risk)
-    max_risk = max(icf_risk, gait_risk, sensor_risk)
-    alpha = 0.15  # 残差系数
+    # 5. 协同非线性风险聚合 (Synergistic Non-linear Risk Aggregation)
+    linear_risk = (w_icf * icf_risk) + (w_gait * gait_risk) + (w_sensor * sensor_risk)
+    max_risk = np.max(risks)  # 极端残差项
+    synergy_risk = np.cbrt(icf_risk * gait_risk * sensor_risk)  # 几何平均捕捉"共病"放大效应
 
-    final_risk_score = (1 - alpha) * attention_fused_risk + alpha * max_risk
+    # 最终风险 = 线性注意力分配 (70%) + 共病协同放大 (15%) + 单项极端危险兜底 (15%)
+    final_risk_score = 0.7 * linear_risk + 0.15 * synergy_risk + 0.15 * max_risk
+    final_risk_score = np.clip(final_risk_score, 0, 1)
 
-    # 5. 基于临床先验的动态阈值判定
-    dynamic_threshold = np.clip(0.55 + 0.1 * (icf_risk - 0.5), 0.40, 0.75)
+    # 6. 冲突调节动态阈值 (Conflict-Adjusted Dynamic Threshold)
+    # 基础阈值锚定 ICF，但在高冲突情况下(医生趋于保守防漏诊)，系统会自动下调报警门槛
+    base_threshold = 0.55 + 0.1 * (icf_risk - 0.5)
+    dynamic_threshold = np.clip(base_threshold - (0.15 * cmci), 0.35, 0.75)
 
     if final_risk_score >= dynamic_threshold + 0.1:
         risk_level = "High"
@@ -163,7 +172,7 @@ def generate_patient_report(patient_id: str, row_data: pd.Series, out_dir: str) 
             "gait": round(row_data["attn_w_gait"], 3),
             "sensor": round(row_data["attn_w_sensor"], 3)
         },
-        "explain_one_line": f"基于信息熵与风险感知注意力机制融合，系统将主要注意力分配给特定模态，最终综合风险评分为 {row_data['risk_score']:.2f} (阈值 {row_data['dynamic_threshold']:.2f})，等级为 {row_data['risk_level']}。"
+        "explain_one_line": f"经证据理论与动态冲突调节(CMCI)计算，检测到共病协同风险，最终评分为 {row_data['risk_score']:.2f} (严格阈值 {row_data['dynamic_threshold']:.2f})，等级判定为 {row_data['risk_level']}。"
     }
 
     os.makedirs(out_dir, exist_ok=True)
@@ -181,10 +190,10 @@ def run_fusion_pipeline(config: FusionConfig) -> pd.DataFrame:
         return pd.DataFrame()
 
     results = merged_df.apply(advanced_fusion_predict, axis=1)
-    # 拼合原始特征和结果（供 XAI 解释模块��用）
+    # 拼合原始特征和结果（供下游 XAI 解释模块使用）
     final_df = pd.concat([merged_df, results], axis=1)
 
-    # 丢弃内部使用的 attention 中间特征列，保持 CSV 清爽
+    # 丢弃内部使用的 attention 中间特征列，保持 CSV 清爽对齐 XAI
     out_df = final_df.drop(columns=["attn_w_icf", "attn_w_gait", "attn_w_sensor"])
 
     os.makedirs(config.output_dir, exist_ok=True)

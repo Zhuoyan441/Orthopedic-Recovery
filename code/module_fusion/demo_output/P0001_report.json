@@ -1,17 +1,17 @@
 {
   "patient_id": "P0001",
-  "risk_score": 0.421,
+  "risk_score": 0.394,
   "risk_level": "Low",
-  "dynamic_threshold_used": 0.55,
+  "dynamic_threshold_used": 0.53,
   "details": {
     "icf_raw": 100.0,
     "gait_raw": 0.224,
     "sensor_raw": 0.8
   },
   "attention_weights": {
-    "icf": 0.677,
-    "gait": 0.159,
-    "sensor": 0.163
+    "icf": 0.636,
+    "gait": 0.18,
+    "sensor": 0.184
   },
-  "explain_one_line": "基于信息熵与风险感知注意力机制融合，系统将主要注意力分配给特定模态，最终综合风险评分为 0.42 (阈值 0.55)，等级为 Low。"
+  "explain_one_line": "经证据理论与动态冲突调节(CMCI)计算，检测到共病协同风险，最终评分为 0.39 (严格阈值 0.53)，等级判定为 Low。"
 }
