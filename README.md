@@ -26,33 +26,22 @@ streamlit run app_streamlit.py
 
 ## 项目当前目录结构（主要）
 
+```bash
 Orthopedic-Recovery/
-
 ├── run_fusion_demo.py
-
 ├── main.py
-
 ├── requirements.txt
-
 ├── data/
-
 │   ├── icf/
-
 │   ├── gait/
-
 │   ├── sensor/
-
 │   └── fusion/
-
 │       └── demo_output/
-
 ├── docs/
-
 │   ├── 数据模拟对照表.md
-
 │   └── ...
-
 └── fusion/
+```
 
 各模块源代码将陆续放入 code/ 目录。
 
