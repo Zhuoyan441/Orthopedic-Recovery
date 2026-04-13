@@ -39,7 +39,19 @@ FUSION_OUTPUT_PATH = os.path.join(FUSION_OUT_DIR, "fusion_output.csv")
 XAI_OUT_DIR = "data/xai/demo_output"
 XAI_INPUT_PATH = FUSION_OUTPUT_PATH
 
+import re
 
+def normalize_patient_id(pid):
+    m = re.search(r"\d+", str(pid))
+    if not m:
+        return str(pid)
+    return f"P{int(m.group()):03d}"
+
+def normalize_df_patient_id(df):
+    if not df.empty and "patient_id" in df.columns:
+        df = df.copy()
+        df["patient_id"] = df["patient_id"].apply(normalize_patient_id)
+    return df
 # =========================
 # 工具函数
 # =========================
@@ -116,10 +128,10 @@ def build_fusion_input(imu_df, gait_df, icf_df):
 # =========================
 # 读取数据
 # =========================
-imu_df = safe_read_csv(IMU_PATH)
-gait_df = safe_read_csv(GAIT_PATH)
-icf_df = safe_read_csv(ICF_PATH)
-fusion_output_df = safe_read_csv(FUSION_OUTPUT_PATH)
+imu_df = normalize_df_patient_id(safe_read_csv(IMU_PATH))
+gait_df = normalize_df_patient_id(safe_read_csv(GAIT_PATH))
+icf_df = normalize_df_patient_id(safe_read_csv(ICF_PATH))
+fusion_output_df = normalize_df_patient_id(safe_read_csv(FUSION_OUTPUT_PATH))
 
 all_patient_ids = get_all_patient_ids(imu_df, gait_df, icf_df, fusion_output_df)
 if not all_patient_ids:
@@ -197,7 +209,7 @@ with tab2:
     if gait_df.empty:
         st.warning("没有找到 Gait CSV：data/gait/demo_output/gait_features.csv")
     else:
-        patient_gait = gait_get_patient_data(patient_id)
+        patient_gait = gait_df[gait_df["patient_id"] == patient_id]
         st.dataframe(patient_gait.head(20))
 
         if not patient_gait.empty and "anomaly_prob" in patient_gait.columns:
