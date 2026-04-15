@@ -1,0 +1,17 @@
+{
+  "patient_id": "P015",
+  "risk_score": 0.194,
+  "risk_level": "Low",
+  "dynamic_threshold_used": 0.511,
+  "details": {
+    "icf_raw": 58.0,
+    "gait_raw": 0.2,
+    "sensor_raw": 0.993
+  },
+  "attention_weights": {
+    "icf": 0.5,
+    "gait": 0.263,
+    "sensor": 0.237
+  },
+  "explain_one_line": "经证据理论与动态冲突调节(CMCI)计算，检测到共病协同风险，最终评分为 0.19 (严格阈值 0.51)，等级判定为 Low。"
+}

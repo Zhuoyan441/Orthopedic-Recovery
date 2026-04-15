@@ -1,0 +1,23 @@
+{
+  "patient_id": "P006",
+  "risk_score": 0.1787533928026509,
+  "risk_level": "Low",
+  "top_contributors": [
+    {
+      "feature": "ICF临床量表",
+      "value": 47.0,
+      "contribution": 0.48023056606417486
+    },
+    {
+      "feature": "Gait步态异常",
+      "value": 0.2,
+      "contribution": 0.408706864735468
+    },
+    {
+      "feature": "IMU动作不规范",
+      "value": 0.945651724137931,
+      "contribution": 0.11106256715682274
+    }
+  ],
+  "explain_one_line": "经多模态融合大脑评估，综合风险为 0.18 (等级: Low)。其中导致风险升高的最大贡献项是【ICF临床量表】，致险占比达 48.0%。"
+}

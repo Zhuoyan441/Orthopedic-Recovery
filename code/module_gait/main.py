@@ -24,7 +24,7 @@ os.makedirs(output_dir, exist_ok=True)
 # 2. 50个patient
 # =========================================
 NUM_PATIENTS = 50
-patient_ids = [f"P{str(i+1).zfill(4)}" for i in range(NUM_PATIENTS)]
+patient_ids = [f"P{str(i+1).zfill(3)}" for i in range(NUM_PATIENTS)]
 
 # =========================================
 # 3. 读取数据
