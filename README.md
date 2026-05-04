@@ -14,11 +14,15 @@
   ```
 
 ### 2. 克隆仓库
+```bash
 git clone https://github.com/Zhuoyan441/Orthopedic-Recovery.git
 cd Orthopedic-Recovery
+```
 
 ### 3. 运行 Streamlit 演示
+```bash
 streamlit run app_streamlit.py
+```
 
 说明：app_streamlit.py 由项目协调负责人提供，请确保已拉取最新代码。
 
